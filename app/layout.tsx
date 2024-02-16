@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import CHAT from "./Chat/page";
 import { ThemeProvider } from "./theme-provider";
+import Provider from "@/components/ui/Provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,17 +19,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-         <CHAT />
-          {children}
-      </ThemeProvider>
+      <Provider>
+        <body className={inter.className}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <CHAT />
+            {children}
+          </ThemeProvider>
         </body>
+      </Provider>
     </html>
   );
 }
