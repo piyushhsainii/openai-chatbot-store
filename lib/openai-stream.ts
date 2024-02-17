@@ -27,11 +27,12 @@ export async function OpenAISteam(payload:OpenAIPayload){
         method:'POST',
         headers:{
             'Content-Type':"Application/json",
-            Authorization: `Bearer ${process.env.API_OPEN_KEY} `
+            Authorization: `Bearer ${process.env.API_OPEN_KEY}`
         },
         body: JSON.stringify(payload)
     })
     let counter = 0
+    console.log(response, "v2")
     const stream = new ReadableStream({
         async start(controller){
             function onParse(event: ParsedEvent | ReconnectInterval){
