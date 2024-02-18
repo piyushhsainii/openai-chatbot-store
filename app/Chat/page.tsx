@@ -7,8 +7,9 @@ import {
 import ChatHeader from "../ChatHeader/page";
 import ChatInput from "../ChatInput/page";
 
- 
+
 const CHAT = () => {
+    
     return ( 
         <Accordion type="single" collapsible className=" text-zinc-900 bg-white relative p-0 m-0 border-none z-40 shadow ">
         <AccordionItem value="item-1">

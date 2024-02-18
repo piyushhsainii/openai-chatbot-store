@@ -2,9 +2,11 @@
 import { cn } from '@/lib/utils';
 import { useMutation, useMutationState } from '@tanstack/react-query';
 import { nanoid } from 'nanoid';
-import { FC, HTMLAttributes, useState } from 'react';
+import { FC, HTMLAttributes, useEffect, useState } from 'react';
 import TextareaAutosizeProps from 'react-textarea-autosize';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { chatbotPrompt } from "@/app/helpers/constants/chatbotPrompt"
+import { Item } from '@radix-ui/react-accordion';
 
 interface ChatInput extends HTMLAttributes<HTMLDivElement> {}
 interface Message {
@@ -27,7 +29,11 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
   const genAI = new GoogleGenerativeAI(NEXT_PUBLIC_API_KEY);
 
   const [message, setMessage] = useState<string>('');
-  const [text, setText] = useState<History[]>([])
+  const [text, setText] = useState<History[]>([{
+    role:'model',
+    parts:'Hello, how can i help you?'
+  }])
+
   const {
     isSuccess,
     isPending,
@@ -35,53 +41,60 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
   } = useMutation({
     mutationFn: async (message: Message) => {
       // Access your API key as an environment variable (see "Set up your API key" above)
-      const prompt = 'Write a story about a magic backpack.';
+      const prompt = chatbotPrompt;
       const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      
       const chat = model.startChat({
         history: [
           {
             role: 'user',
-            parts:
-              'I am a 10th grade student. I do not understand much works so explain me everything clearly ^-^',
+            parts:prompt
           },
           {
-            role: "model",
-            parts: "Great to meet you. What would you like to know?",
-          },
+            role: 'model',
+            parts:'OK'
+          }
         ],
         generationConfig: {
           maxOutputTokens: 300,
         },
       });
+
       const msg = {
         role:'user',
         parts : message.text,
       };
-
-      const result = await chat.sendMessage(msg.parts);
+      const result = await chat.sendMessageStream(msg.parts);
       setText(prev=>[...prev,msg as History]);
-      const response = await result.response;
-      const finalRes = {
+      let textMess = {
         role:'model',
-        parts:response.text()
+        parts:''
       }
-      setText(prev=>[...prev,finalRes as History]);
+      for await (const chunk of result.stream) {
+        const chunkText = {
+          role:'model',
+          parts:chunk.text()
+        }
+        textMess.parts += chunkText.parts;
+      }
+      setText(prev=>[...prev,textMess as History])
     },
   });
-
+  useEffect(()=>{
+  },[text])
   return (
     <div {...props} className={cn('border-t border-zinc-300', className)}>
       <div className=' flex-1 overflow-hidden border-none outline-none'>
-        <div className=' h-[17rem] border border-gray-200 overflow-y-auto' >
+        <div className=' h-[17rem]   border border-gray-200 overflow-y-auto ' >
         {
         text.map((text)=>(
           <div className={``}>
-            <div className={`${text.role==='model' ? 'flex justify-start px-2 mx-2 my-1 text-[13px]  ' : 'flex justify-end p-2  mx-2 my-1 text-[13px]  rounded-md '}`}>
-              <div className={`border border-slate-500 py-1 px-2  rounded-md  ${text.role==='model' ? 'bg-green-500 ' : 'bg-blue-500 text-slate-100' } `} >
+             <div className={` ${text.role==='model' ? 'flex justify-start px-2 mx-2 my-1 text-[13px]  ' : 'flex justify-end p-2  mx-2 my-1 text-[13px]  rounded-md '}`}>
+              <div className={`break-words px-2 max-w-[270px]  py-1  rounded-md  ${text.role==='model' ? 'bg-green-600 ' : 'bg-blue-500 text-slate-100' } `} >
                {text.parts}
               </div>
-            </div>
-            </div>
+             </div>
+          </div>
         ))
         }
         </div>
