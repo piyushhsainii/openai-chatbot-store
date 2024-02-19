@@ -110,7 +110,7 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
         {/* messages */}
         <div className=' h-[17rem]   border border-gray-200 overflow-y-auto '>
           {final.map((text) => (
-            <div className={``}>
+            <div key={text.role} className={``}>
               <div
                 className={` ${
                   text.role === 'model'
