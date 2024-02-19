@@ -4,6 +4,7 @@ import "./globals.css";
 import CHAT from "./Chat/page";
 import { ThemeProvider } from "./theme-provider";
 import Provider from "@/components/ui/Provider";
+import  RecoilProvider  from '../lib/RecoilProvider'
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,20 +19,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <Provider>
-        <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <CHAT />
-            {children}
-          </ThemeProvider>
-        </body>
-      </Provider>
+    <html lang="en"> 
+    <RecoilProvider>
+        <Provider>
+          <body className={inter.className}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+             >
+              <CHAT />
+              {children}
+            </ThemeProvider>
+          </body>
+        </Provider>
+    </RecoilProvider>
+
     </html>
   );
 }

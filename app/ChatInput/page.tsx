@@ -1,12 +1,13 @@
 'use client';
 import { cn } from '@/lib/utils';
-import { useMutation, useMutationState } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { nanoid } from 'nanoid';
-import { FC, HTMLAttributes, useEffect, useState } from 'react';
+import { FC, HTMLAttributes,useState } from 'react';
 import TextareaAutosizeProps from 'react-textarea-autosize';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { chatbotPrompt } from "@/app/helpers/constants/chatbotPrompt"
-import { Item } from '@radix-ui/react-accordion';
+import { chatbotPrompt } from '@/app/helpers/constants/chatbotPrompt';
+import { text } from '@/lib/atom';
+import { useRecoilState } from 'recoil';
 
 interface ChatInput extends HTMLAttributes<HTMLDivElement> {}
 interface Message {
@@ -27,12 +28,14 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
   if (!NEXT_PUBLIC_API_KEY) throw new Error('Could not fetch api key');
   // instantiate
   const genAI = new GoogleGenerativeAI(NEXT_PUBLIC_API_KEY);
-
+  const [ final, setText2 ] = useRecoilState(text)
   const [message, setMessage] = useState<string>('');
-  const [text, setText] = useState<History[]>([{
-    role:'model',
-    parts:'Hello, how can i help you?'
-  }])
+  const [textMessage, setText] = useState<History[]>([
+    {
+      role: 'model',
+      parts: 'Hello, how can i help you?',
+    },
+  ]);
 
   const {
     isSuccess,
@@ -43,17 +46,17 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
       // Access your API key as an environment variable (see "Set up your API key" above)
       const prompt = chatbotPrompt;
       const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-      
+
       const chat = model.startChat({
         history: [
           {
             role: 'user',
-            parts:prompt
+            parts: prompt,
           },
           {
             role: 'model',
-            parts:'OK'
-          }
+            parts: 'OK',
+          },
         ],
         generationConfig: {
           maxOutputTokens: 300,
@@ -61,42 +64,72 @@ const ChatInput: FC<ChatInput> = ({ className, ...props }) => {
       });
 
       const msg = {
-        role:'user',
-        parts : message.text,
+        role: 'user',
+        parts: message.text,
       };
       const result = await chat.sendMessageStream(msg.parts);
-      setText(prev=>[...prev,msg as History]);
+      setText((prev) => [...prev, msg as History]);
+      setText2((prev) => [...prev, msg as History]);
       let textMess = {
-        role:'model',
-        parts:''
-      }
+        role: 'model',
+        parts: '',
+      };
+     
       for await (const chunk of result.stream) {
         const chunkText = {
-          role:'model',
-          parts:chunk.text()
-        }
+          role: 'model',
+          parts: chunk.text(),
+        };
         textMess.parts += chunkText.parts;
       }
-      setText(prev=>[...prev,textMess as History])
+      setText((prev) => [...prev, textMess as History]);
+      setText2((prev) => [...prev, textMess as History]);
+      setMessage('')
     },
-  });
-  useEffect(()=>{
-  },[text])
+    onError:()=>{
+      let ErrorMess = {
+        role: 'model',
+        parts: 'Something went wrong',
+      };
+      setText((prev) => [...prev, ErrorMess as History]);
+    },
+  })
+  
+  // if(isPending) {
+  //   let ErrorMess = {
+  //       role: 'model',
+  //       parts: '...',
+  //     };
+  //     setText((prev) => [...prev, ErrorMess as History]);;
+  //   return  
+  // }
+
   return (
     <div {...props} className={cn('border-t border-zinc-300', className)}>
       <div className=' flex-1 overflow-hidden border-none outline-none'>
-        <div className=' h-[17rem]   border border-gray-200 overflow-y-auto ' >
-        {
-        text.map((text)=>(
-          <div className={``}>
-             <div className={` ${text.role==='model' ? 'flex justify-start px-2 mx-2 my-1 text-[13px]  ' : 'flex justify-end p-2  mx-2 my-1 text-[13px]  rounded-md '}`}>
-              <div className={`break-words px-2 max-w-[270px]  py-1  rounded-md  ${text.role==='model' ? 'bg-green-600 ' : 'bg-blue-500 text-slate-100' } `} >
-               {text.parts}
+        {/* messages */}
+        <div className=' h-[17rem]   border border-gray-200 overflow-y-auto '>
+          {final.map((text) => (
+            <div className={``}>
+              <div
+                className={` ${
+                  text.role === 'model'
+                    ? 'flex justify-start px-2 mx-2 my-1 text-[13px]  '
+                    : 'flex justify-end p-2  mx-2 my-1 text-[13px]  rounded-md '
+                }`}
+              >
+                <div
+                  className={`break-words px-2 max-w-[270px]  py-1  rounded-md  ${
+                    text.role === 'model'
+                      ? 'bg-green-600 '
+                      : 'bg-blue-500 text-slate-100'
+                  } `}
+                >
+                  {text.parts}
+                </div>
               </div>
-             </div>
-          </div>
-        ))
-        }
+            </div>
+          ))}
         </div>
         <TextareaAutosizeProps
           autoFocus
